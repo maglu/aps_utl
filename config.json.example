@@ -1,27 +1,27 @@
 {
     "nrt": {
         "mode": "ssh",
-        "ip": "192.168.0.101",
+        "ip": "192.168.0.XXX",
         "port": 22,
         "username": "root",
-        "password": ""
+        "password": "YOUR_PASSWORD"
     },
     "rt": {
         "mode": "ssh",
-        "ip": "192.168.0.101",
+        "ip": "192.168.0.XXX",
         "port": 1022,
         "username": "root",
-        "password": ""
+        "password": "YOUR_PASSWORD"
     },
     "bbb": {
         "mode": "uart",
-        "ip": "192.168.0.200",
+        "ip": "192.168.0.XXX",
         "username": "debian",
-        "password": "magnus",
+        "password": "YOUR_SSH_PASSWORD",
         "uart_port": "/dev/ttyUSB0",
         "baudrate": 115200,
         "uart_login": "root",
-        "uart_password": ""
+        "uart_password": "YOUR_UART_PASSWORD"
     },
     "macros": {
         "wifi": [
