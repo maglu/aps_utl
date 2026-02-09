@@ -19,31 +19,37 @@ def main():
     parser = argparse.ArgumentParser(description="APS Control CLI")
     
     # New Usage: ./aps_ctl.py [target] [command] etc.
-    parser.add_argument('target', help="Target device name (e.g. aps, bbb) defined in config.json")
+    parser.add_argument('target', nargs='?', help="Target device name (e.g. aps, bbb) defined in config.json")
     parser.add_argument('command', nargs='?', help="Command to execute (optional if --macro or --send-file used)")
     
     parser.add_argument('-d', '--debug', action='store_true', help="Enable debug output")
     parser.add_argument('-i', '--interactive', action='store_true', help="Start an interactive shell session")
     
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('--macro', help="Name of macro to execute")
-    parser.add_argument('--send-file', metavar='LOCAL', help="Send file (uses basename for remote)")
-    parser.add_argument('--get-file', metavar='REMOTE', help="Get file (saves to basename in current dir)")
-    group.add_argument('--list-macros', action='store_true', help="List available macros")
+    group.add_argument('-m', '--macro', help="Name of macro to execute")
+    parser.add_argument('-s', '--send', metavar='LOCAL', help="Send file (uses basename for remote)")
+    parser.add_argument('-g', '--get', metavar='REMOTE', help="Get file (saves to basename in current dir)")
+    group.add_argument('-l', '--list-macros', action='store_true', help="List available macros")
 
     args = parser.parse_args()
     
     # Load Config
     config = load_config("config.json")
     
-    # Handle list-macros early? (Maybe doesn't need target? But usage says ./aps_ctl.py [target] ... so target is mandatory)
+    # Handle list-macros early
     if args.list_macros:
         print("Available Macros:")
         for name, cmds in config.get('macros', {}).items():
             print(f"  - {name}: {len(cmds)} commands")
         return
 
-    # Validate Target
+    # Validate Target is present (required for all other operations)
+    if not args.target:
+        parser.print_usage()
+        print("Error: standard usage requires a target argument.")
+        sys.exit(1)
+
+    # Validate Target exists in config
     if args.target not in config:
         # Check if 'macros' is accidentally passed as target (edge case), but config structure distinguishes
         print(f"Error: Target '{args.target}' not found in configuration.")
@@ -121,16 +127,16 @@ def main():
                 resp = comm.send_command(cmd)
                 print(f"Output: {resp}")
                 
-        elif args.send_file:
-            local_path = args.send_file
+        elif args.send:
+            local_path = args.send
             remote_path = os.path.basename(local_path)
             try:
                 comm.send_file(local_path, remote_path)
             except NotImplementedError:
                 print(f"Error: File transfer is not supported for target '{args.target}' (mode: {mode}).")
                 
-        elif args.get_file:
-            remote_path = args.get_file
+        elif args.get:
+            remote_path = args.get
             local_path = os.path.basename(remote_path)
             try:
                 comm.get_file(remote_path, local_path)
