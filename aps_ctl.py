@@ -23,6 +23,7 @@ def main():
     parser.add_argument('command', nargs='?', help="Command to execute (optional if --macro or --send-file used)")
     
     parser.add_argument('-d', '--debug', action='store_true', help="Enable debug output")
+    parser.add_argument('-i', '--interactive', action='store_true', help="Start an interactive shell session")
     
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--macro', help="Name of macro to execute")
@@ -84,6 +85,18 @@ def main():
             
         comm.connect()
         
+        # Handle Interactive Mode
+        if args.interactive:
+            try:
+                comm.start_interactive_shell()
+            except KeyboardInterrupt:
+                print("\nInteractive session ended.")
+            except Exception as e:
+                print(f"Error during interactive session: {e}")
+            finally:
+                comm.disconnect()
+                sys.exit(0)
+
         # Determine action
         command_to_run = args.command
         

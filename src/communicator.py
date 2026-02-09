@@ -49,3 +49,8 @@ class Communicator(ABC):
             local_path (str): Destination path on the local machine.
         """
         pass
+
+    @abstractmethod
+    def start_interactive_shell(self):
+        """Start an interactive shell session."""
+        pass

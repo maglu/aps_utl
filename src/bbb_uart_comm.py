@@ -1,5 +1,6 @@
 import paramiko
 import time
+import sys
 from .communicator import Communicator
 
 class BBBConnection(Communicator):
@@ -261,3 +262,67 @@ class BBBConnection(Communicator):
 
     def get_file(self, remote_path: str, local_path: str):
         raise NotImplementedError("File retrieval via UART is not supported.")
+
+    def start_interactive_shell(self):
+        """
+        Start an interactive shell session via UART.
+        We basically tunnel our terminal to `microcom` running on the BBB.
+        """
+        if not self.client:
+            raise ConnectionError("Not connected.")
+
+        import select
+        import socket
+        try:
+            import termios
+            import tty
+        except ImportError:
+            raise RuntimeError("Interactive mode requires a POSIX system (termios/tty support).")
+
+        self.log(f"Starting interactive UART shell via picocom on {self.uart_port}...")
+        self.log("(Press Ctrl+A then X to exit picocom, or disconnect via SSH)")
+
+        # We need a dedicated channel for this
+        transport = self.client.get_transport()
+        chan = transport.open_session()
+        chan.get_pty() # Request a PTY on the BBB side so microcom behaves well
+        chan.set_combine_stderr(True)
+        
+        # Start picocom
+        # -b baudrate: 115200
+        # Use absolute path if known, or just name
+        cmd = f"picocom -b {self.baudrate} {self.uart_port}"
+        chan.exec_command(cmd)
+        
+        # Save original tty settings
+        old_tty = termios.tcgetattr(sys.stdin)
+        
+        try:
+            # Set stdin to raw mode
+            tty.setraw(sys.stdin.fileno())
+            chan.settimeout(0.0)
+
+            while True:
+                r, w, e = select.select([chan, sys.stdin], [], [])
+                
+                if chan in r:
+                    try:
+                        x = chan.recv(1024)
+                        if len(x) == 0:
+                            break
+                        sys.stdout.buffer.write(x)
+                        sys.stdout.buffer.flush()
+                    except socket.timeout:
+                        pass
+                
+                if sys.stdin in r:
+                    x = sys.stdin.read(1)
+                    if len(x) == 0:
+                        break
+                    chan.send(x)
+                    
+        finally:
+            # Restore tty settings
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
+            chan.close()
+            print("\nConnection closed.")

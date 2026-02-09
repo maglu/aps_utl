@@ -2,6 +2,7 @@ import paramiko
 import os
 import stat
 import sys
+import socket
 from .communicator import Communicator
 
 class SSHCommunicator(Communicator):
@@ -238,6 +239,59 @@ class SSHCommunicator(Communicator):
                 self._get_file_scp(remote_path, local_path)
             except Exception as scp_e:
                 raise RuntimeError(f"File retrieval failed (SFTP: {e}, SCP: {scp_e})")
+
+    def start_interactive_shell(self):
+        """
+        Start an interactive shell session.
+        Authentication is already handled by connect().
+        """
+        if not self.client:
+            raise ConnectionError("Not connected.")
+
+        import select
+        try:
+            import termios
+            import tty
+        except ImportError:
+            raise RuntimeError("Interactive mode requires a POSIX system (termios/tty support).")
+
+        self.log("Starting interactive SSH shell... (Press user interrupt to exit)")
+
+        # Open a new shell channel
+        chan = self.client.invoke_shell()
+        
+        # Save original tty settings
+        old_tty = termios.tcgetattr(sys.stdin)
+        
+        try:
+            # Set stdin to raw mode
+            tty.setraw(sys.stdin.fileno())
+            chan.settimeout(0.0)
+
+            while True:
+                r, w, e = select.select([chan, sys.stdin], [], [])
+                
+                if chan in r:
+                    try:
+                        x = chan.recv(1024)
+                        if len(x) == 0:
+                            break
+                        sys.stdout.buffer.write(x)
+                        sys.stdout.buffer.flush()
+                    except socket.timeout:
+                        pass
+                
+                if sys.stdin in r:
+                    x = sys.stdin.read(1)
+                    if len(x) == 0:
+                        break
+                    chan.send(x)
+                    
+        finally:
+            # Restore tty settings
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
+            chan.close()
+            print("\nConnection closed.")
 
     def _get_file_scp(self, remote_path, local_path):
         """
