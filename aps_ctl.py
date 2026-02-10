@@ -110,7 +110,7 @@ def main():
             if args.debug:
                 print(f"Executing on {args.target}: {command_to_run}")
             response = comm.send_command(command_to_run)
-            print(f"Response:\n{response}")
+            print(f"# {command_to_run}\n{response}")
             
         elif args.macro:
             macro_cmds = config.get('macros', {}).get(args.macro)
@@ -124,8 +124,10 @@ def main():
             for i, cmd in enumerate(macro_cmds, 1):
                 if args.debug:
                     print(f"[{i}/{len(macro_cmds)}] {cmd}")
+                else:
+                    print(f"# {cmd}")
                 resp = comm.send_command(cmd)
-                print(f"Output: {resp}")
+                print(resp)
                 
         elif args.send:
             local_path = args.send
