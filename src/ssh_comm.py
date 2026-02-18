@@ -136,6 +136,33 @@ class SSHCommunicator(Communicator):
         try:
             if not self.sftp:
                 self.sftp = self.client.open_sftp()
+            
+            # Handle tilde expansion for remote path (simple case for current user)
+            if remote_path.startswith('~/'):
+                try:
+                    # Get home directory
+                    self.sftp.chdir('.')
+                    home = self.sftp.getcwd()
+                    remote_path = os.path.join(home, remote_path[2:])
+                except:
+                    # Fallback or ignore if fails
+                    pass
+            
+            # Check if remote_path is a directory
+            # Check if remote_path is a directory
+            try:
+                r_stat = self.sftp.stat(remote_path)
+                if stat.S_ISDIR(r_stat.st_mode):
+                    # It is a directory, append local filename
+                    # Assume unix-style remote paths
+                    if not remote_path.endswith('/'):
+                        remote_path += '/'
+                    remote_path += os.path.basename(local_path)
+                    self.log(f"Target is a directory, sending to: {remote_path}")
+            except IOError:
+                # Path doesn't exist, assume it's the target filename
+                pass
+
             self.sftp.put(local_path, remote_path, callback=self._print_progress)
             
             # Preserve attributes (SFTP)
@@ -219,6 +246,11 @@ class SSHCommunicator(Communicator):
             if not self.sftp:
                 self.sftp = self.client.open_sftp()
             
+            # Check if local_path is a directory
+            if os.path.exists(local_path) and os.path.isdir(local_path):
+                 local_path = os.path.join(local_path, os.path.basename(remote_path))
+                 self.log(f"Destination is a directory, saving to: {local_path}")
+
             # Use callback to track progress if needed, but for now just get
             # Get attributes first (SFTP)
             attrs = self.sftp.stat(remote_path)

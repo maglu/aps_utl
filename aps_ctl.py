@@ -27,8 +27,8 @@ def main():
     
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-m', '--macro', help="Name of macro to execute")
-    parser.add_argument('-s', '--send', metavar='LOCAL', help="Send file (uses basename for remote)")
-    parser.add_argument('-g', '--get', metavar='REMOTE', help="Get file (saves to basename in current dir)")
+    parser.add_argument('-s', '--send', nargs='+', metavar=('LOCAL', 'REMOTE'), help="Send file (local [remote])")
+    parser.add_argument('-g', '--get', nargs='+', metavar=('REMOTE', 'LOCAL'), help="Get file (remote [local])")
     group.add_argument('-l', '--list-macros', action='store_true', help="List available macros")
 
     args = parser.parse_args()
@@ -130,16 +130,34 @@ def main():
                 print(resp)
                 
         elif args.send:
-            local_path = args.send
-            remote_path = os.path.basename(local_path)
+            if len(args.send) > 2:
+                print("Error: --send accepts at most 2 arguments (LOCAL [REMOTE]).")
+                comm.disconnect()
+                sys.exit(1)
+            
+            local_path = args.send[0]
+            if len(args.send) == 2:
+                remote_path = args.send[1]
+            else:
+                remote_path = os.path.basename(local_path)
+                
             try:
                 comm.send_file(local_path, remote_path)
             except NotImplementedError:
                 print(f"Error: File transfer is not supported for target '{args.target}' (mode: {mode}).")
                 
         elif args.get:
-            remote_path = args.get
-            local_path = os.path.basename(remote_path)
+            if len(args.get) > 2:
+                print("Error: --get accepts at most 2 arguments (REMOTE [LOCAL]).")
+                comm.disconnect()
+                sys.exit(1)
+
+            remote_path = args.get[0]
+            if len(args.get) == 2:
+                local_path = args.get[1]
+            else:
+                local_path = os.path.basename(remote_path)
+                
             try:
                 comm.get_file(remote_path, local_path)
             except NotImplementedError:
