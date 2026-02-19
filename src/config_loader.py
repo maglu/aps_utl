@@ -2,20 +2,27 @@ import json
 import os
 import sys
 
-def load_config(config_path="aps_config.json"):
+def load_config(config_name="aps_config.json"):
     """
     Load configuration from a JSON file.
     
     Args:
-        config_path (str): Path to the config file.
+        config_name (str): Name of the config file.
         
     Returns:
         dict: The configuration dictionary.
     """
-    if not os.path.exists(config_path):
-        print(f"Error: Configuration file '{config_path}' not found.")
+    cwd_path = os.path.join(os.getcwd(), config_name)
+    tool_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    tool_path = os.path.join(tool_dir, config_name)
+    
+    if os.path.exists(cwd_path):
+        config_path = cwd_path
+    elif os.path.exists(tool_path):
+        config_path = tool_path
+    else:
+        print(f"Error: Configuration file '{config_name}' not found in current directory ({os.getcwd()}) or tool directory ({tool_dir}).")
         sys.exit(1)
-        
     try:
         with open(config_path, 'r') as f:
             config = json.load(f)
