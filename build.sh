@@ -19,5 +19,5 @@ pyinstaller --onefile --name aps_ctl aps_ctl.py
 echo "Build complete!"
 echo "--------------------------------------------------------"
 echo "Binary location: dist/aps_ctl"
-echo "IMPORTANT: You must copy 'config.json' alongside the binary to the target machine."
+echo "IMPORTANT: You must copy 'aps_config.json' alongside the binary to the target machine."
 echo "--------------------------------------------------------"

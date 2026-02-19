@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description="APS Control CLI")
     
     # New Usage: ./aps_ctl.py [target] [command] etc.
-    parser.add_argument('target', nargs='?', help="Target device name (e.g. aps, bbb) defined in config.json")
+    parser.add_argument('target', nargs='?', help="Target device name (e.g. aps, bbb) defined in aps_config.json")
     parser.add_argument('command', nargs='?', help="Command to execute (optional if --macro or --send-file used)")
     
     parser.add_argument('-d', '--debug', action='store_true', help="Enable debug output")
@@ -34,7 +34,7 @@ def main():
     args = parser.parse_args()
     
     # Load Config
-    config = load_config("config.json")
+    config = load_config("aps_config.json")
     
     # Handle list-macros early
     if args.list_macros:

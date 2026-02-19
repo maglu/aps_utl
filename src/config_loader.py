@@ -2,7 +2,7 @@ import json
 import os
 import sys
 
-def load_config(config_path="config.json"):
+def load_config(config_path="aps_config.json"):
     """
     Load configuration from a JSON file.
     
