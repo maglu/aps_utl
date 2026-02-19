@@ -13,7 +13,15 @@ def load_config(config_name="aps_config.json"):
         dict: The configuration dictionary.
     """
     cwd_path = os.path.join(os.getcwd(), config_name)
-    tool_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    # Handle PyInstaller packaged app vs normal script execution
+    if getattr(sys, 'frozen', False):
+        # The application is frozen (PyInstaller bundle)
+        tool_dir = os.path.dirname(sys.executable)
+    else:
+        # We are running normally from source
+        tool_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
     tool_path = os.path.join(tool_dir, config_name)
     
     if os.path.exists(cwd_path):
