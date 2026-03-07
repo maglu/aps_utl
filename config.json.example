@@ -36,5 +36,13 @@
         "kill": [
             "for p in start-rtaf.sh rtaf sq-rtaf-stripped; do for pid in $(ps | grep \"$p\" | grep -v grep | sed 's/^[ \\t]*//;s/[ \\t].*//'); do kill -9 $pid; done; done"
         ]
+    },
+    "multi_macros": {
+        "deploy_example": [
+            {"target": "nrt", "command": "ls"},
+            {"command": "ls"},
+            {"target": "nrt", "command": "df"},
+            {"target": "rt", "command": "df"}
+        ]
     }
 }

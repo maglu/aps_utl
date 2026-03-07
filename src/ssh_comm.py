@@ -115,15 +115,19 @@ class SSHCommunicator(Communicator):
         # print(f"Sending command: {cmd}")
         stdin, stdout, stderr = self.client.exec_command(cmd)
         
+        # Wait for command to exit and get status
+        exit_status = stdout.channel.recv_exit_status()
+        
         # Read output
         out = stdout.read().decode().strip()
         err = stderr.read().decode().strip()
         
-        if err:
-             # Depending on requirements, we might want to return stderr too or raise exception
-             # For now, append it if present
-             return f"{out}\nError: {err}".strip()
-        return out
+        full_out = f"{out}\nError: {err}".strip() if err else out
+        
+        if exit_status != 0:
+            raise RuntimeError(f"Command failed with exit status {exit_status}\n{full_out}".strip())
+            
+        return full_out
 
     def send_file(self, local_path: str, remote_path: str):
         if not self.client:
