@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import argparse
-import argparse
 import sys
 import warnings
 import os
 import subprocess
+import re
 
 # Suppress CryptographyDeprecationWarning from paramiko
 with warnings.catch_warnings():
@@ -57,8 +57,26 @@ def main():
     parser.add_argument('-g', '--get', nargs='+', metavar=('REMOTE', 'LOCAL'), help="Get file (remote [local])")
     group.add_argument('-l', '--list-macros', action='store_true', help="List available macros")
 
-    args = parser.parse_args()
+    args, unknown_args = parser.parse_known_args()
     
+    # Extract macro arguments depending on invocation type
+    macro_args = []
+    if args.mmacro:
+        if args.target:
+            macro_args.append(args.target)
+            args.target = None
+        if args.command:
+            macro_args.append(args.command)
+            args.command = None
+        macro_args.extend(unknown_args)
+    elif args.macro:
+        if args.command:
+            macro_args.append(args.command)
+            args.command = None
+        macro_args.extend(unknown_args)
+    elif unknown_args:
+        parser.error(f"unrecognized arguments: {' '.join(unknown_args)}")
+        
     # Load Config
     config = load_config("aps_config.json")
     
@@ -105,10 +123,21 @@ def main():
                     print(f"Error: Step {i} is missing 'command' field.")
                     continue
                     
-                if target is None:
-                    target_str = "local"
-                else:
+                if target is not None:
+                    for idx, arg_val in enumerate(macro_args):
+                        target = target.replace(f"{{{idx}}}", str(arg_val))
+                    if re.search(r'\{\d+\}', target):
+                        print(f"Error: Not enough arguments provided for multi-macro target '{step.get('target')}'.")
+                        sys.exit(1)
                     target_str = target
+                else:
+                    target_str = "local"
+
+                for idx, arg_val in enumerate(macro_args):
+                    cmd = cmd.replace(f"{{{idx}}}", str(arg_val))
+                if re.search(r'\{\d+\}', cmd):
+                    print(f"Error: Not enough arguments provided for multi-macro command '{step.get('command')}'.")
+                    sys.exit(1)
 
                 if args.debug:
                     print(f"[{i}/{len(multi_macro_cmds)}] Target: {target_str} | Cmd: {cmd}")
@@ -193,6 +222,12 @@ def main():
                 if args.debug:
                     print(f"Executing Macro: {args.macro} ({len(macro_cmds)} steps) on {args.target}")
                 for i, cmd in enumerate(macro_cmds, 1):
+                    for idx, arg_val in enumerate(macro_args):
+                        cmd = cmd.replace(f"{{{idx}}}", str(arg_val))
+                    if re.search(r'\{\d+\}', cmd):
+                        print(f"Error: Not enough arguments provided for macro command '{macro_cmds[i-1]}'.")
+                        sys.exit(1)
+                        
                     if args.debug:
                         print(f"[{i}/{len(macro_cmds)}] {cmd}")
                     else:
