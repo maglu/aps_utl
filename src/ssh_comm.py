@@ -187,16 +187,29 @@ class SSHCommunicator(Communicator):
         Simple SCP implementation using 'scp -t' on remote.
         """
         import os
+        import stat
         
         st = os.stat(local_path)
         file_size = st.st_size
         mode = stat.S_IMODE(st.st_mode)
+        
+        # Avoid issues where remote scp considers a full path file as a directory
+        # or doesn't support unquoted paths with spaces.
+        target_dir = os.path.dirname(remote_path)
+        if not target_dir:
+            target_dir = '.'
+            
         basename = os.path.basename(remote_path)
+        if not basename:
+            basename = os.path.basename(local_path)
+            
+        quoted_dir = target_dir.replace("'", "'\\''")
         
         # Open a channel for SCP
         # -p option tells remote scp to expect time/mode commands
+        # -d explicitly treats the target as a directory
         chan = self.client.get_transport().open_session()
-        chan.exec_command(f"scp -t -p {remote_path}")
+        chan.exec_command(f"scp -t -d -p '{quoted_dir}'")
         
         # Protocol: Wait for 0x00
         if chan.recv(1) != b'\x00':
@@ -339,7 +352,8 @@ class SSHCommunicator(Communicator):
         # -f option tells remote scp to send file
         # -p (preserve) is optional
         chan = self.client.get_transport().open_session()
-        chan.exec_command(f"scp -f -p {remote_path}")
+        quoted_path = remote_path.replace("'", "'\\''")
+        chan.exec_command(f"scp -f -p '{quoted_path}'")
         
         # Protocol: Send 0x00 to start
         chan.send(b'\x00')
