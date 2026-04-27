@@ -13,32 +13,8 @@ with warnings.catch_warnings():
     import paramiko
 
 from src.config_loader import load_config
-from src.ssh_comm import SSHCommunicator
-from src.bbb_uart_comm import BBBConnection
-
-def _get_communicator(target_name, target_conf, debug=False):
-    mode = target_conf.get('mode')
-    if mode == 'ssh':
-        return SSHCommunicator(
-            host=target_conf['ip'],
-            port=target_conf['port'],
-            username=target_conf['username'],
-            password=target_conf['password'],
-            verbose=debug
-        )
-    elif mode == 'uart':
-        return BBBConnection(
-            host=target_conf['ip'],
-            username=target_conf['username'],
-            password=target_conf['password'],
-            uart_port=target_conf['uart_port'],
-            baudrate=target_conf['baudrate'],
-            uart_login=target_conf.get('uart_login'),
-            uart_password=target_conf.get('uart_password'),
-            verbose=debug
-        )
-    else:
-        raise ValueError(f"Unknown mode '{mode}' for target '{target_name}'. Supported: ssh, uart")
+from src.executor import get_communicator
+import json
 
 def main():
     parser = argparse.ArgumentParser(description="APS Control CLI")
@@ -79,7 +55,13 @@ def main():
         
     # Load Config
     config = load_config("aps_config.json")
-    
+    try:
+        with open("aps_macros.json", "r") as f:
+            macros_config = json.load(f)
+            config['multi_macros'] = macros_config.get('macros', {})
+    except Exception as e:
+        print(f"Warning: could not load aps_macros.json: {e}")
+        
     # Handle list-macros early
     if args.list_macros:
         print("Available Macros:")
@@ -169,7 +151,7 @@ def main():
                             if 'mode' not in t_conf:
                                 print(f"Error: Target '{target}' is missing 'mode'.")
                                 continue
-                            comm = _get_communicator(target, t_conf, args.debug)
+                            comm = get_communicator(target, t_conf, args.debug)
                             comm.connect()
                             communicators[target] = comm
                         except Exception as e:
@@ -188,7 +170,7 @@ def main():
                 sys.exit(1)
 
             # Initialize Communicator
-            comm = _get_communicator(args.target, target_conf, args.debug)
+            comm = get_communicator(args.target, target_conf, args.debug)
             comm.connect()
             communicators[args.target] = comm
             

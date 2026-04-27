@@ -1,0 +1,187 @@
+{
+    "macros": {
+        "wifi": {
+            "description": "Configure WIFI interface CE01 and ping gateway",
+            "steps": [
+                {
+                    "target": "{0}",
+                    "command": "ip addr show CE01"
+                },
+                {
+                    "target": "{0}",
+                    "command": "ip addr flush dev CE01; ip addr add 192.168.1.100/24 dev CE01"
+                },
+                {
+                    "target": "{0}",
+                    "command": "ip link set CE01 up; ip route replace default via 192.168.1.1 dev CE01"
+                },
+                {
+                    "target": "{0}",
+                    "command": "ping 192.168.1.1 -c 1 -w 1"
+                }
+            ]
+        },
+        "check_status": {
+            "description": "Check uptime and memory usage",
+            "steps": [
+                {
+                    "target": "{0}",
+                    "command": "uptime"
+                },
+                {
+                    "target": "{0}",
+                    "command": "free -m"
+                }
+            ]
+        },
+        "kill": {
+            "description": "Kill RTAF processes",
+            "steps": [
+                {
+                    "target": "{0}",
+                    "command": "for p in start-rtaf.sh rtaf sq-rtaf-stripped; do for pid in $(ps | grep \"$p\" | grep -v grep | sed 's/^[ \\t]*//;s/[ \\t].*//'); do kill -9 $pid; done; done"
+                }
+            ]
+        },
+        "ping_ip": {
+            "description": "Ping a specified IP address",
+            "steps": [
+                {
+                    "target": "{0}",
+                    "command": "ping -C 1 $GATEWAY_IP"
+                }
+            ]
+        },
+        "match": {
+            "description": "Set Chassis Mismatch flag in Valkey",
+            "steps": [
+                {
+                    "target": "{0}",
+                    "command": "printf '\\x00' | valkey-cli -x set 'Sqr/RTA/Chassis/Mismatch'"
+                }
+            ]
+        },
+        "stop": {
+            "description": "Stop RTAF manager",
+            "steps": [
+                {
+                    "target": "{0}",
+                    "command": "curl --unix-socket /var/run/edge-core/edge-core.sock http://localhost/api/v1/applications/sq-rtaf-manager/commands/rtastop -X POST"
+                }
+            ]
+        },
+        "start": {
+            "description": "Start RTAF manager",
+            "steps": [
+                {
+                    "target": "{0}",
+                    "command": "curl --unix-socket /var/run/edge-core/edge-core.sock http://localhost/api/v1/applications/sq-rtaf-manager/commands/rtastart -X POST"
+                }
+            ]
+        },
+        "cmd": {
+            "description": "Execute a generic command on an entity",
+            "steps": [
+                {
+                    "target": "{0}",
+                    "command": "{1}"
+                }
+            ]
+        },
+        "up_dev": {
+            "description": "Show uptime on both RT and NRT",
+            "steps": [
+                {
+                    "target": "rt",
+                    "command": "uptime"
+                },
+                {
+                    "target": "nrt",
+                    "command": "uptime"
+                }
+            ]
+        },
+        "bundle": {
+            "description": "Send bundle.zip to NRT100 and update configuration",
+            "steps": [
+                {
+                    "command": "scp {0} root@192.168.1.100:/var/lib/edge-agent/app/sc-minio/data/csp/bundle.zip"
+                },
+                {
+                    "target": "nrt100",
+                    "command": "curl http://localhost/api/v1/applications/txp-configuration-manager/commands/updateConfiguration --unix-socket /var/run/edge-core/edge-core.sock -X POST -H 'Content-Type: application/x-www-form-urlencoded' -d 'configFile=/csp/bundle.zip'"
+                },
+                {
+                    "target": "nrt100",
+                    "command": "DOCKER_ID=$(docker ps -a | grep \"txp-configuration-manager:\" | awk '{print $1}'); docker logs $DOCKER_ID --tail 30"
+                }
+            ]
+        },
+        "rtaf_mgr": {
+            "description": "Update RTAF manager locally for NRT100",
+            "steps": [
+                {
+                    "command": "aps -mm rtaf_mgr_upd nrt100 {0}"
+                }
+            ]
+        },
+        "rtaf": {
+            "description": "Stop NRT100 and update RTAF locally for RT100",
+            "steps": [
+                {
+                    "command": "aps nrt100 -m stop"
+                },
+                {
+                    "command": "aps -mm rtaf_upd rt100 build/sq-rtaf-stripped"
+                }
+            ]
+        },
+        "rtaf_upd": {
+            "description": "Update RTAF binary locally and copy",
+            "internal": true,
+            "steps": [
+                {
+                    "command": "aps {0} -s {1} rtaf >/dev/null"
+                },
+                {
+                    "command": "aps {0} \"cp /mnt/apps/rtaf /mnt/apps/rtaf.bkp; cp rtaf /mnt/apps/rtaf; sync\""
+                }
+            ]
+        },
+        "rtaf_mgr_upd": {
+            "description": "Update RTAF manager binary via curl",
+            "internal": true,
+            "steps": [
+                {
+                    "command": "aps {0} -s ./{1} /tmp/>/dev/null"
+                },
+                {
+                    "command": "aps {0} \"curl --unix-socket /var/run/edge-core/edge-core.sock http://localhost/api/v1/applications -X POST -F 'file=@/tmp/{1}' -H 'app_name: sq-rtaf-manager'\""
+                }
+            ]
+        },
+        "bundle_upd": {
+            "description": "Update bundle.zip and apply configuration",
+            "internal": true,
+            "steps": [
+                {
+                    "command": "aps {0} -s {1} /var/lib/edge-agent/app/sc-minio/data/csp/bundle.zip> /dev/null"
+                },
+                {
+                    "command": "aps {0} \"curl http://localhost/api/v1/applications/txp-configuration-manager/commands/updateConfiguration --unix-socket /var/run/edge-core/edge-core.sock -X POST -H 'Content-Type: application/x-www-form-urlencoded' -d 'configFile=/csp/bundle.zip'\""
+                },
+                {
+                    "command": "aps {0} \"DOCKER_ID=$(docker ps -a | grep \\\"txp-configuration-manager:\\\" | awk '{print $1}'); docker logs $DOCKER_ID --tail 30\""
+                }
+            ]
+        },
+        "tools": {
+            "description": "Upload tools to RT",
+            "steps": [
+                {
+                    "command": "for p in $(ls ~/aps_tmp); do aps rt -s ~/aps_tmp/$p>/dev/null; done"
+                }
+            ]
+        }
+    }
+}
