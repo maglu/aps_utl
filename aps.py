@@ -14,10 +14,17 @@ with warnings.catch_warnings():
 from src.executor import get_communicator, run_action
 
 def get_session_id():
+    if 'APS_SESSION_ID' in os.environ:
+        return os.environ['APS_SESSION_ID']
+        
     tmux_pane = os.environ.get('TMUX_PANE')
     if tmux_pane:
-        return tmux_pane.replace('%', 'pane_')
-    return str(os.getppid())
+        session_id = tmux_pane.replace('%', 'pane_')
+    else:
+        session_id = str(os.getsid(0))
+        
+    os.environ['APS_SESSION_ID'] = session_id
+    return session_id
 
 def get_state_file():
     return f"/tmp/.aps_target_state_{get_session_id()}"
@@ -134,6 +141,9 @@ def main():
         print("  aps load <device>")
         print("  aps --info")
         print("  aps <entity> [command]")
+        print("  aps <entity> -s <local> [remote]  (Send file)")
+        print("  aps <entity> -g <remote> [local]  (Get file)")
+        print("  aps <entity> -i                 (Interactive shell)")
         print("\nAvailable Macros:")
         for m_name, m_def in mm_defs.items():
             _, desc, req_args, is_internal, env_vars_req = get_macro_info(m_def)
@@ -192,7 +202,7 @@ def main():
     # Must have a loaded device for any execution
     device = load_state()
     if not device:
-        print("Error: No active device. Use 'aps_env load <device>' first.")
+        print("Error: No active device. Use 'aps load <device>' first.")
         sys.exit(1)
         
     env_vars = parse_env_file()

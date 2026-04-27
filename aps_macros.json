@@ -1,5 +1,37 @@
 {
     "macros": {
+        "send_rt": {
+            "description": "Send a file to the RT entity (local_path remote_path)",
+            "steps": [
+                {
+                    "command": "aps rt -s {0} {1}"
+                }
+            ]
+        },
+        "send_nrt": {
+            "description": "Send a file to the NRT entity (local_path remote_path)",
+            "steps": [
+                {
+                    "command": "aps nrt -s {0} {1}"
+                }
+            ]
+        },
+        "get_rt": {
+            "description": "Get a file from the RT entity (remote_path local_path)",
+            "steps": [
+                {
+                    "command": "aps rt -g {0} {1}"
+                }
+            ]
+        },
+        "get_nrt": {
+            "description": "Get a file from the NRT entity (remote_path local_path)",
+            "steps": [
+                {
+                    "command": "aps nrt -g {0} {1}"
+                }
+            ]
+        },
         "wifi": {
             "description": "Configure WIFI interface CE01 and ping gateway",
             "steps": [

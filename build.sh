@@ -16,8 +16,15 @@ echo "Building aps..."
 # --hidden-import: Explicitly import paramiko if auto-detection fails (usually not needed but safe)
 python3 -m PyInstaller --onefile --name aps aps.py
 
-echo "Build complete!"
+echo "Packaging into zip..."
+cd dist
+cp ../network.env .
+cp ../aps_macros.json .
+zip aps_release.zip aps network.env aps_macros.json
+cd ..
+
+echo "Build and packaging complete!"
 echo "--------------------------------------------------------"
 echo "Binary location: dist/aps"
-echo "IMPORTANT: Make sure to copy 'network.env' and 'aps_macros.json' alongside the binary."
+echo "Release package: dist/aps_release.zip"
 echo "--------------------------------------------------------"
