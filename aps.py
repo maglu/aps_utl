@@ -33,7 +33,23 @@ def save_state(device):
     with open(get_state_file(), 'w') as f:
         f.write(device)
 
+def resolve_config_path(filename):
+    if os.path.exists(filename):
+        return filename
+        
+    if getattr(sys, 'frozen', False):
+        tool_dir = os.path.dirname(os.path.abspath(sys.executable))
+    else:
+        tool_dir = os.path.dirname(os.path.abspath(__file__))
+        
+    tool_path = os.path.join(tool_dir, filename)
+    if os.path.exists(tool_path):
+        return tool_path
+        
+    return filename
+
 def parse_env_file(path="network.env"):
+    path = resolve_config_path(path)
     env = {}
     if not os.path.exists(path):
         return env
@@ -62,6 +78,7 @@ def get_target_conf(env_vars, device, entity):
     return conf
 
 def load_macros(path="aps_macros.json"):
+    path = resolve_config_path(path)
     if not os.path.exists(path):
         return {}
     with open(path, 'r') as f:
@@ -114,9 +131,9 @@ def main():
 
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
         print("Usage:")
-        print("  aps_env load <device>")
-        print("  aps_env --info")
-        print("  aps_env <entity> [command]")
+        print("  aps load <device>")
+        print("  aps --info")
+        print("  aps <entity> [command]")
         print("\nAvailable Macros:")
         for m_name, m_def in mm_defs.items():
             _, desc, req_args, is_internal, env_vars_req = get_macro_info(m_def)
@@ -133,7 +150,7 @@ def main():
     # Handle `load <device>`
     if cmd_first == "load":
         if len(sys.argv) < 3:
-            print("Error: specify device to load (e.g., aps_env load dev1)")
+            print("Error: specify device to load (e.g., aps load dev1)")
             sys.exit(1)
         device = sys.argv[2]
         env_vars = parse_env_file()
@@ -153,7 +170,7 @@ def main():
     if cmd_first in ("--info", "-i"):
         device = load_state()
         if not device:
-            print("No active device. Use 'aps_env load <device>' first.")
+            print("No active device. Use 'aps load <device>' first.")
             sys.exit(1)
             
         env_vars = parse_env_file()
@@ -212,7 +229,7 @@ def main():
             args_str = " ".join([f"<arg{i}>" for i in range(req_args)])
             env_str = f" [req env: {', '.join(env_vars_req)}]" if env_vars_req else ""
             print(f"Error: Incomplete options for macro '{macro_name}'")
-            print(f"Usage: aps_env {macro_name} {args_str}{env_str}".strip())
+            print(f"Usage: aps {macro_name} {args_str}{env_str}".strip())
             missing = req_args - len(macro_args)
             missing_args = " ".join([f"<arg{i}>" for i in range(len(macro_args), req_args)])
             print(f"You missed {missing} argument(s): {missing_args}")
@@ -297,7 +314,7 @@ def main():
         sys.exit(1)
 
     # Use argparse for the rest of the arguments to re-use run_action logic easily
-    parser = argparse.ArgumentParser(prog=f"aps_env {entity}")
+    parser = argparse.ArgumentParser(prog=f"aps {entity}")
     parser.add_argument('command', nargs='?', help="Command to execute")
     parser.add_argument('-d', '--debug', action='store_true', help="Enable debug output")
     parser.add_argument('-i', '--interactive', action='store_true', help="Start an interactive shell session")

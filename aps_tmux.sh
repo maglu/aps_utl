@@ -17,15 +17,15 @@ if [ $? != 0 ]; then
     tmux new-session -d -s $SESSION -n "RT"
     
     # Load the device in the first pane
-    tmux send-keys -t $SESSION:0 "./.venv/bin/python aps_env.py load $DEVICE" C-m
+    tmux send-keys -t $SESSION:0 "./.venv/bin/python aps.py load $DEVICE" C-m
     
-    # Create window for NRT
-    tmux new-window -t $SESSION:1 -n "NRT"
-    tmux send-keys -t $SESSION:1 "./.venv/bin/python aps_env.py load $DEVICE" C-m
+    # Window 1 (nrt)
+    tmux new-window -t $SESSION:1 -n 'nrt'
+    tmux send-keys -t $SESSION:1 "./.venv/bin/python aps.py load $DEVICE" C-m
     
-    # Create window for BBB
-    tmux new-window -t $SESSION:2 -n "BBB"
-    tmux send-keys -t $SESSION:2 "./.venv/bin/python aps_env.py load $DEVICE" C-m
+    # Window 2 (bbb)
+    tmux new-window -t $SESSION:2 -n 'bbb'
+    tmux send-keys -t $SESSION:2 "./.venv/bin/python aps.py load $DEVICE" C-m
     
     # Select first window
     tmux select-window -t $SESSION:0

@@ -32,7 +32,7 @@ def get_communicator(target_name, target_conf, debug=False):
 def run_action(comm, args, target_name, mode, debug=False):
     """
     Executes an action (interactive shell, command, send file, get file) on a connected communicator.
-    Does not handle macros because aps_env and aps_ctl handle macros very differently.
+    Does not handle macros because aps handles macros in a dedicated way.
     """
     if getattr(args, 'interactive', False):
         try:
