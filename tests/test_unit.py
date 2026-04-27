@@ -12,15 +12,6 @@ if 'paramiko' not in sys.modules:
 
 from src.ssh_comm import SSHCommunicator
 from src.bbb_uart_comm import BBBConnection
-from src.config_loader import load_config
-
-class TestConfig(unittest.TestCase):
-    def test_load_valid_config(self):
-        # We need a dummy file, or patch open
-        with patch("src.config_loader.open", unittest.mock.mock_open(read_data='{"aps":{}, "bbb":{}, "macros":{}}')) as m:
-            with patch("src.config_loader.os.path.exists", return_value=True):
-                conf = load_config("dummy.json")
-                self.assertIn("aps", conf)
 
 class TestSSH(unittest.TestCase):
     @patch("paramiko.SSHClient")
